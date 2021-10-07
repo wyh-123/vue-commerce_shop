@@ -83,14 +83,15 @@ export default {
         /* 利用await简化promise对象 */
         const { data: res } = await this.$http.post("login", this.loginform);
         if (res.meta.status !== 200) {
+          console.log(1);
           return this.$message.error("登录失败");
         }
-         this.$message.success("登录成功");
+        this.$message.success("登录成功");
         //1.将登录成功的token保存到客户端的sessionStorge中
         //1.1为什么不保存到localStorge，因为token只应在当前网站打开期间生效
-        window.sessionStorage.setItem('token',res.data.token)
+        window.sessionStorage.setItem("token", res.data.token);
         //通过编程式导航跳转到后台页面
-        this.$router.push('/home')
+        this.$router.push("/home");
       });
     },
   },
@@ -101,6 +102,7 @@ export default {
 .container {
   width: 100%;
   height: 100%;
+  background-color: #2b4b6b;
 }
 .login {
   width: 450px;

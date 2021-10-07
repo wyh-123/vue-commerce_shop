@@ -8,8 +8,14 @@ import 'element-ui/lib/theme-chalk/index.css';
 import  '@/assets/iconfont/iconfont.css'
 import axios from 'axios'
 /* 配置请求根路径 */
-axios.defaults.baseURL = `http://127.0.0.1:8888/api/private/v1/`
-Vue.prototype.$http=axios
+axios.defaults.baseURL = `http://127.0.0.1:8888/api/private/v1/`;
+axios.interceptors.request.use(config => {
+  /* 为请求头对象添加Token验证的Authorization字段 */
+  config.headers.Authorization=window.sessionStorage.getItem('token')
+  /* 最后必须return config */
+  return config
+})
+Vue.prototype.$http = axios
 Vue.config.productionTip = false
 
 new Vue({
