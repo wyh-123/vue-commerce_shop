@@ -76,6 +76,7 @@
                 type="warning"
                 icon="el-icon-setting"
                 size="mini"
+                @click="setrole(scope.row)"
               ></el-button
             ></el-tooltip>
           </template>
@@ -126,7 +127,12 @@
       </span>
     </el-dialog>
     <!-- 修改用户的对话框 -->
-    <el-dialog title="修改用户" :visible.sync="editdialogVisible" width="50%" close='editclosed'>
+    <el-dialog
+      title="修改用户"
+      :visible.sync="editdialogVisible"
+      width="50%"
+      close="editclosed"
+    >
       <el-form
         :model="editForm"
         :rules="addFormrules"
@@ -137,18 +143,44 @@
           <el-input v-model="editForm.username" disabled></el-input>
         </el-form-item>
         <!-- prop是校验规则 -->
-         <el-form-item label="邮箱" prop='email'>
+        <el-form-item label="邮箱" prop="email">
           <el-input v-model="editForm.email"></el-input>
         </el-form-item>
-         <el-form-item label="手机号" prop='mobile'>
+        <el-form-item label="手机号" prop="mobile">
           <el-input v-model="editForm.mobile"></el-input>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="editdialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="edituserinfo"
-          >确 定</el-button
-        >
+        <el-button type="primary" @click="edituserinfo">确 定</el-button>
+      </span>
+    </el-dialog>
+    <!-- 分配角色的对话框 -->
+    <el-dialog
+      title="分配角色"
+      :visible.sync="setroledialogVisible"
+      width="50%"
+      @close="setdialog()"
+    >
+      <div>
+        <p>当前的用户: {{ setuserinfo.username }}</p>
+        <p>当前的角色: {{ setuserinfo.role_name }}</p>
+        <p>
+          分配新角色:
+          <el-select v-model="selectroleid" placeholder="请选择">
+            <el-option
+              v-for="item in rolesList"
+              :key="item.id"
+              :label="item.roleName"
+              :value="item.id"
+            >
+            </el-option>
+          </el-select>
+        </p>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="setroledialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="saveRoleinfo">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -222,9 +254,9 @@ export default {
       /* 查询到的用户信息 */
       editForm: {},
       /* 修改表单的验证规则对象 */
-      addFormrules:{
-        email:[
-           { required: true, message: " 请输入邮箱", trigger: "blur" },
+      addFormrules: {
+        email: [
+          { required: true, message: " 请输入邮箱", trigger: "blur" },
           {
             pattern:
               /^[A-Za-z0-9\u4e00-\u9fa5]+@[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)+$/,
@@ -232,15 +264,23 @@ export default {
             trigger: "blur",
           },
         ],
-        mobile:[
-           { required: true, message: "请输入手机号码", trigger: "blur" },
+        mobile: [
+          { required: true, message: "请输入手机号码", trigger: "blur" },
           {
             pattern: /^((1[3,5,8][0-9])|(14[5,7])|(17[0,6,7,])|(19[7]))\d{8}$/,
             message: "手机号格式不对",
             trigger: "blur",
           },
-        ]
-      }
+        ],
+      },
+      /* 分配角色对话框的显示隐藏 */
+      setroledialogVisible: false,
+      /* 需要被分配角色的信息 */
+      setuserinfo: {},
+      /* 所有角色的数据列表 */
+      rolesList: [],
+      /* 已选中的角色id值 */
+      selectroleid: "",
     };
   },
   created() {
@@ -252,11 +292,11 @@ export default {
         params: this.userinfo,
       });
       if (res.meta.status !== 200) {
+        console.log(res);
         return this.$message.error("请求失败");
       }
       this.userlist = res.data.users;
       this.total = res.data.total;
-      console.log(res);
     },
     /* 监听页码值改变 */
     handleSizeChange(newpagesize) {
@@ -302,68 +342,99 @@ export default {
       });
     },
     /* 修改用户 */
+    /* 先根据id查询到用户 */
     async edituser(id) {
-      const { data: res } = await this.$http.get("user/" + id);
+      const { data: res } = await this.$http.get("users/" + id);
       if (res.meta.status !== 200) {
         return this.$message.error("查询失败");
       }
-      this.editForm = res.data;
       this.editdialogVisible = true;
-    },
-   async edituser(id){
-      const {data:res}=await this.$http.get('users/'+id);
-      if(res.meta.status!==200){
-      return  this.$message.error('查询失败');
-      }
-      this.editdialogVisible=true;
-      this.editForm=res.data;
-      console.log(this.editForm);
+      this.editForm = res.data;
     },
     /* 兼容修改对话框的关闭 */
-    editclosed(){
-      this.$refs.editFormref.resetFields()
+    editclosed() {
+      this.$refs.editFormref.resetFields();
     },
     /* 修改用户信息并提交 */
-    edituserinfo(){
-      this.$refs.editFormref.validate(async vaild=>{
-        if(!vaild){
-          return 
+    edituserinfo() {
+      this.$refs.editFormref.validate(async (vaild) => {
+        if (!vaild) {
+          return;
         }
         /* 发起请求 */
-     const{data:res}=  await this.$http.put('users/'+this.editForm.id,{
-         email: this.editForm.email,
-         mobile:this.editForm.mobile
-        })
-        if(res.meta.status!==200){
-         return  this.$message.error('更新失败')
+        const { data: res } = await this.$http.put(
+          "users/" + this.editForm.id,
+          {
+            email: this.editForm.email,
+            mobile: this.editForm.mobile,
+          }
+        );
+        if (res.meta.status !== 200) {
+          return this.$message.error("更新失败");
         }
         /* 关闭对话框，刷新数据列表，提示修改成功 */
-        this.editdialogVisible=false;
+        this.editdialogVisible = false;
         this.getueserlist();
-        this.$message.success('更新用户信息成功')
-      })
+        this.$message.success("更新用户信息成功");
+      });
     },
     /* 根据id删除用户 */
-  async  removeuser(id){
+    async removeuser(id) {
       /* 询问用户是否删除 */
-    const confirmresult=  await this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }).catch(err=>err)
-        //如果确认删除返回confirm字符串
-        //如果取消删除返回字符串cancel
-        if(confirmresult!=='confirm'){
-          return this.$message.info('已取消删除')
+      const confirmresult = await this.$confirm(
+        "此操作将永久删除该用户, 是否继续?",
+        "提示",
+        {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning",
         }
-     const {data:res} =await this.$http.delete('users/'+id);
-     if(res.meta.status!==200){
-       return this.$message.error('删除失败')
-     }
-     this.getueserlist();
-    return this.$message.success('删除用户成功')
-
-    }
+      ).catch((err) => err);
+      //如果确认删除返回confirm字符串
+      //如果取消删除返回字符串cancel
+      if (confirmresult !== "confirm") {
+        return this.$message.info("已取消删除");
+      }
+      const { data: res } = await this.$http.delete("users/" + id);
+      if (res.meta.status !== 200) {
+        return this.$message.error("删除失败");
+      }
+      this.getueserlist();
+      return this.$message.success("删除用户成功");
+    },
+    /* 展示分配角色的对话框 */
+    async setrole(userinfo) {
+      this.setuserinfo = userinfo;
+      /* 获取角色列表 */
+      const { data: res } = await this.$http.get("roles");
+      if (res.meta.status !== 200) {
+        this.$message.error("获取角色列表失败");
+      }
+      this.rolesList = res.data;
+      this.setroledialogVisible = true;
+    },
+    /* 点击确定按钮分配角色 */
+    async saveRoleinfo() {
+      if (!this.selectroleid) {
+        return this.$message.error("请选择要分配的角色");
+      }
+      const { data: res } = await this.$http.put(
+        `users/${this.setuserinfo.id}/role`,
+        {
+          rid: this.selectroleid,
+        }
+      );
+      if (res.meta.status !== 200) {
+        return this.$message.error("更新角色失败");
+      }
+      this.$message.success("更新角色成功");
+      this.getueserlist();
+      this.setroledialogVisible = false;
+    },
+    setdialog() {
+      this.selectroleid = "";
+      this.setuserinfo = {};
+    },
   },
 };
 </script>
@@ -382,5 +453,8 @@ export default {
 }
 .el-pagination {
   margin-top: 15px;
+}
+.el-dialog p {
+  margin-bottom: 10px;
 }
 </style>
