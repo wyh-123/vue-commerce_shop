@@ -83,7 +83,6 @@ export default {
         /* 利用await简化promise对象 */
         const { data: res } = await this.$http.post("login", this.loginform);
         if (res.meta.status !== 200) {
-          console.log(1);
           return this.$message.error("登录失败");
         }
         this.$message.success("登录成功");

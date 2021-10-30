@@ -8,6 +8,8 @@ import Rights from "@/components/power/Rights.vue"
 import Roles from "@/components/power/Roles"
 import cate from "@/components/goods/cate.vue"
 import params from "@/components/goods/params.vue"
+import List from "@/components/goods/List.vue"
+import add from "@/components/goods/add.vue"
 Vue.use(VueRouter)
 const router = new VueRouter({
   routes: [
@@ -15,16 +17,20 @@ const router = new VueRouter({
     { path: '/login', component: Login },
     {
       path: '/home', component: Home,
-      redirect:'/welcome',
+      redirect: '/welcome',
+      /* 因为home页面里有routerview，所以这些路由要写在children里面 */
       children: [
         {path:'/welcome',component:Welcome},
-        { path: '/users', component: User },
+        { path: '/users', component: User }, 
         { path: '/rights', component: Rights },
         {path:"/roles",component:Roles},
         {path:"/categories",component:cate},
-        {path:"/params",component:params}
+        {path:"/params",component:params},
+        { path: "/goods", component: List },
+        {path:"/goods/add",component:add}
       ]
-    }
+    },
+
   ]
 })
 //挂载路由导航守卫

@@ -1,0 +1,9 @@
+
+/* 这个css文件再执行时组件都渲染好了，
+如果在组件里面写element-ui的样式，那么有时候不会生效 */
+.el-step__title{
+    font-size: 13px;
+}
+.ql-editor{
+    min-height: 300px;
+  }
