@@ -166,9 +166,6 @@ export default {
 </script>
 
 <style scoped>
-.el-card {
-  margin-top: 20px;
-}
 .el-cascader{
     width: 100%;
 }
